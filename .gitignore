@@ -1,4 +1,5 @@
 /Desktop/builder/build/*
+/Desktop/builder/cache/*
 /Desktop/builder/Output/*
 /Desktop/builder/node_modules/*
 /Mobile/WiFi-Code-Scanner/platforms/ios/*
