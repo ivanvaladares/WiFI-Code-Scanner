@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>WiFi Code Scanner-tester</title>
+		<script src="./js/jquery.min.js"></script>
+		<link type="text/css" href="./css/styles.css" rel="stylesheet" />
+        <meta charset="UTF-8">
+	</head>
+	<body onselect="return false;">
+
+		<div class="main" id="main">
+
+            <form action="" id="form" method="POST">
+                
+				Address: <input type="text" name="adress" value="http://localhost:3000" /><br />
+                Key: <input type="text" name="key" /><br />
+                func: <input type="text" name="func" /><br />
+                Code: <input type="text" name="code" /><br />
+
+				<input type="submit" value="Send" />
+
+            </form>
+
+			return: <span id="returnSpan"></span>
+
+		</div>		
+	</body>
+
+
+	<script>
+	$("#form").submit(function( event ) {
+
+		$("#returnSpan").text("...");
+
+		$.post( $("#form input:first").val() , 
+				{
+					key: $("input[name='key']").val(), 
+					func: $("input[name='func']").val(), 
+					code: btoa(unescape(encodeURIComponent($("input[name='code']").val())))
+				})
+			.done(function( data ) {
+				$("#returnSpan").text(data);
+			})
+			.fail(function(err){
+				$("#returnSpan").text(err.statusText);
+			});
+
+		event.preventDefault();
+
+	});
+	</script>
+
+</html>

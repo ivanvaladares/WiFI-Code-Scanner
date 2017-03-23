@@ -1,0 +1,22 @@
+{
+  "name": "WiFi Code Scanner",
+  "version": "1.0.0",
+  "main": "index.html",
+  "chromium-args": "--disable-raf-throttling",
+  "port": 3000,
+  "window": {
+    "title": "WiFi Code Scanner",
+    "icon": "icon.ico",
+    "toolbar": false,
+    "frame": true,
+    "fullscreen": false,
+    "resizable": false,
+    "width": 330,
+    "height": 390
+  },
+  "dependencies": {
+    "applescript": "1.0.0",
+    "node-qr-image": "0.0.1",
+    "ws": "^2.2.1"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "WiFi-Code-Scanner-builder",
+  "version": "1.0.0",
+  "dependencies": {
+    "nw-builder": "3.2.0",
+    "appdmg": "0.4.5"
+  }
+}

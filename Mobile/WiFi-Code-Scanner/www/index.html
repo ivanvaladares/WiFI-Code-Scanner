@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+    <script src="./js/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="./css/bootstrap.min.css" />
+    <title>WiFI Code Scanner</title>
+
+    <style>
+        body {
+            font-size: 16pt;
+            color: #fff;
+            background-image: url(./images/bg.png);
+            background-color: #232a39;
+            -webkit-touch-callout: none;
+            -webkit-text-size-adjust: none;
+            -webkit-user-select: none;
+        }
+        
+        #logo {
+            margin-top: 50px;
+            text-align: center
+        }
+        
+        #logo img {
+            max-height: 100px;
+            margin: 0px auto;
+        }
+        
+        #divCheckingConnection,
+        #divConfig,
+        #divScan,
+        #divScanning {
+            position: absolute;
+            /* position in the center of the screen */
+            left: 0px;
+            top: 40%;
+            height: 100px;
+            /* text area height */
+            width: 100%;
+            text-align: center;
+            padding: 25px;
+        }
+        
+        .green {
+            color: #55aa55;
+        }
+        
+        .blink_me {
+            animation: blinker 1s linear infinite;
+        }
+        
+        @keyframes blinker {
+            50% {
+                opacity: 0;
+            }
+        }
+    </style>
+    <script type="text/javascript" charset="utf-8">
+        var connected = false;
+        var connecting = false;
+        var address = "";
+        var securityKey = "";
+        var scanning = false;
+        var ws = null;
+        var intervalCheckConnected;
+
+        function onDeviceReady() {
+            document.addEventListener("pause", onPause, false);
+            document.addEventListener("resume", onResume, false);
+        }
+
+        function onPause() {
+            console.log("pause");
+            if (connected) {
+                ws.close();
+            }
+        }
+
+        function onResume() {
+            console.log("resume");
+            connect();
+        }
+
+
+        $(function () {
+            if (localStorage.address != null) {
+                address = localStorage.getItem('address');
+            }
+            if (localStorage.securityKey != null) {
+                securityKey = localStorage.getItem('securityKey');
+            }
+
+            $(".btn").click(function () {
+                $(this).attr("disabled", "disabled");
+            });
+
+            document.addEventListener("deviceready", onDeviceReady, false);
+
+            connect();
+        });
+
+
+        function timoutConnection() {
+            console.log("timoutConnection()");
+            window.clearInterval(intervalCheckConnected);
+
+            if (connected || !ws) {
+                return;
+            }
+
+            ws.close();
+        }
+
+        function connect() {
+            console.log("connect");
+
+            if (connected || connecting) {
+                return;
+            }
+
+            if (address == "") {
+                setNotConnected();
+                return;
+            }
+
+            connecting = true;
+            ws = new WebSocket("ws://" + address);
+
+            ws.onopen = function () {
+                connecting = false;
+                window.clearInterval(intervalCheckConnected);
+                ws.send('{"key": "' + securityKey + '", "func": "connect"}');
+            };
+
+            window.clearInterval(intervalCheckConnected);
+            intervalCheckConnected = window.setInterval(timoutConnection, 5000);
+
+            ws.onmessage = function (e) {
+                if (e.data == "CONNECTED") {
+
+                    setConnected();
+
+                } else {
+
+                    if (e.data == "OK") {
+                        //vibrate to inform that the command was sent
+                        if (navigator.vibrate) {
+                            navigator.vibrate(300);
+                        }
+
+                        //keep scanning until the user cancels
+                        scanCode(sendToComputer);
+
+                    } else {
+                        navigator.notification.alert(
+                            "Error sending code to computer!\nPlease, check your connection.",
+                            function () { void (0) },
+                            'Ops!',
+                            'Done'
+                        );
+
+                        console.log(data);
+                    }
+
+                }
+
+            };
+
+            ws.onclose = function (evt) {
+                connecting = false;
+
+                window.clearInterval(intervalCheckConnected);
+
+                if (evt.code == 3001) {
+                    console.log('ws closed');
+                } else {
+                    console.log('ws connection error');
+                }
+
+                ws = null;
+                setNotConnected();
+            };
+
+        }
+
+        function preCheck() {
+            if (connected || connecting) {
+                return;
+            }
+
+            if (!scanning) {
+                $("#divConfig").hide();
+                $("#divCheckingConnection").show();
+            }
+
+            window.setTimeout(check, 1000);
+        }
+
+        function check() {
+            if (connected || connecting) {
+                return;
+            }
+                        
+            if (address == "") {
+                setNotConnected();
+                return;
+            }
+
+            if (!ws || ws.readyState == 3) {
+                connect();
+            }
+        }
+
+
+        function setNotConnected() {
+            console.log("setNotConnected");
+            connected = false;
+
+            if (!scanning) {
+                $("#divScanning").hide();
+                $("#divScan").hide();
+                $("#divCheckingConnection").hide();
+                $("#divConfig").show();
+            }
+
+            if (address != "") {
+                window.setTimeout(preCheck, 3000);
+            }
+        }
+
+
+        function setConnected() {
+            console.log("setConnected");
+            connected = true;
+
+            $("#divScanning").hide();
+            $("#divCheckingConnection").hide();
+            $("#divConfig").hide();
+            $("#divScan").show();
+
+            //persist the current successful connection
+            localStorage.setItem("address", address);
+            localStorage.setItem("securityKey", securityKey);
+        }
+
+        function setupConnection(info) {
+
+            try {
+
+                var objJson = JSON.parse(info);
+
+                if (objJson.hasOwnProperty('key') && objJson.hasOwnProperty('address')) {
+                    address = objJson.address;
+                    securityKey = objJson.key;
+
+                    connect();
+
+                } else {
+                    navigator.notification.alert(
+                        "Could not connect to this computer!",
+                        function () { void (0) },
+                        'Ops!',
+                        'Done'
+                    );
+                }
+
+            } catch (err) {
+                navigator.notification.alert(
+                    "Could not connect to this computer!",
+                    function () { void (0) },
+                    'Ops!',
+                    'Done'
+                );
+
+                console.log(err);
+            }
+
+        }
+
+        function sendToComputer(code) {
+
+            ws.send('{"key": "' + securityKey + '", "func": "writeCode", "code" : "' + btoa(unescape(encodeURIComponent(code))) + '"}');
+
+        }
+
+        function scanCode(callback) {
+
+            scanning = true;
+
+            $("#divScan").hide();
+            $("#divConfig").hide();
+            $("#divScanning").show().text((connected) ? "Scanning..." : "Configuring...");
+
+            cordova.plugins.barcodeScanner.scan(
+                function (result) {
+                    scanning = false;
+
+                    $(".btn").removeAttr("disabled");
+
+                    if (callback && result.cancelled == 0) {
+                        callback(result.text);
+                    } else {
+                        $("#divScanning").hide();
+                        if (connected) {
+                            $("#divScan").show();
+                        } else {
+                            $("#divConfig").show();
+                        }
+                    }
+
+                },
+                function (error) {
+                    scanning = false;
+
+                    $(".btn").removeAttr("disabled");
+
+                    $("#divScanning").hide();
+                    if (connected) {
+                        $("#divScan").show();
+                    } else {
+                        $("#divConfig").show();
+                    }
+
+                    navigator.notification.alert(
+                        "Scanning failed: " + error,
+                        function () { void (0) },
+                        'Ops!',
+                        'Done'
+                    );
+                },
+                {
+                    preferFrontCamera: false, // iOS and Android
+                    showFlipCameraButton: false, // iOS and Android
+                    showTorchButton: true, // iOS and Android
+                    torchOn: false, // Android, launch with the torch switched on (if available)
+                    prompt: "Place a barcode inside the scan area", // Android
+                    resultDisplayDuration: 500, // Android, display scanned text for X ms. 0 suppresses it entirely, default 1500
+                    formats: "QR_CODE,PDF_417", // default: all but PDF_417 and RSS_EXPANDED
+                    orientation: "unset", // Android only (portrait|landscape), default unset so it rotates with the device
+                    disableAnimations: false, // iOS
+                    disableSuccessBeep: false // iOS
+                }
+            );
+        }
+    </script>
+</head>
+
+<body>
+    <script type="text/javascript" src="cordova.js"></script>
+
+    <div id="logo"><img src="./images/logo.png" /></div>
+
+
+    <div id="divCheckingConnection" style="display: none">
+        Please wait while <br />the app try to connect <br />to your computer...
+    </div>
+
+    <div id="divConfig" style="display: none">
+        Open WiFi Code Scanner on your computer near to your computer's clock and scan the QR Code.
+        <br /><br />
+
+        <button onclick="scanCode(setupConnection);" class="btn btn-lg btn-info">Scan configuration QR Code</button> <br>
+    </div>
+
+    <div id="divScan" style="display: none">
+        <span class="green blink_me">Connected</span>
+        <br /> You can start to scan your codes.
+        <br /><br />
+
+        <button onclick="scanCode(sendToComputer);" class="btn btn-lg btn-success">Scan code</button> <br>
+    </div>
+
+    <div id="divScanning" class="green" style="display: none">
+    </div>
+
+</body>
+
+</html>

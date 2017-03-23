@@ -1,0 +1,7 @@
+{
+  "name": "WiFiCodeScanner",
+  "version": "1.1.0",
+  "description": "App to scan barcodes, qr codes and other types from mobile to computer",
+  "author": "Ivan Valadares and Gustavo Leite",
+  "license": "Apache-2.0"
+}

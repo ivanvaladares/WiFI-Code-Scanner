@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>WiFi Code Scanner</title>
+		<link type="text/css" href="./css/styles.css" rel="stylesheet" />
+	</head>
+	<body onselect="return false;">
+
+		<div class="main" id="main">
+
+			<div id="qrCode">
+			</div>
+
+			Use the WiFi Code Scaner App on your phone to scan the code above to connect.
+
+			<br />
+			<br />
+			Status: <span id="phoneConnected" class="blink_me">Connected</span>
+			<span id="phoneNotConnected">Disconnected</span>
+
+		</div>		
+	</body>
+
+	<script>
+		var pkg = require(global.__dirname + '/package.json')
+		var portaServidor = pkg.port;
+	</script>
+
+	<script src="./js/jquery.min.js"></script>
+	<script src="./js/server.js"></script>
+</html>
